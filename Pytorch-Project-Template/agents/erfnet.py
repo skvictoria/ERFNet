@@ -12,7 +12,7 @@ import logging
 from graphs.models.erfnet import ERF
 from graphs.models.erfnet_imagenet import ERFNet
 #from datasets.voc2012 import VOCDataLoader
-from datasets.cityscapes_loader import CityscapesLoader
+from datasets.cityscapes import CityscapesDataLoader
 from graphs.losses.cross_entropy import CrossEntropyLoss
 
 from torch.optim import lr_scheduler
@@ -58,15 +58,17 @@ class ERFNetAgent(BaseAgent):
         
         # Create an instance from the data loader
         #self.data_loader = VOCDataLoader(self.config)
+        self.data_loader = CityscapesDataLoader(self.config)
         '''
         net_h, net_w = 448, 896
         augment = Compose([RandomHorizontallyFlip(), RandomSized((0.625, 0.75)),
                        RandomRotate(6), RandomCrop((net_h, net_w))])
-        '''
+        
         
         local_path = "./data/Cityscapes"
 
         self.data_loader = CityscapesLoader(local_path, split="test", is_transform=True, augmentations=None, gt="gtFine")
+        '''
         ########################################
         self.color_transform = Colorize(self.config.num_classes)
         self.image_transform = ToPILImage()
@@ -281,6 +283,7 @@ class ERFNetAgent(BaseAgent):
         return epoch_mean_iou, epoch_loss.val
 
     def test(self):
+        '''
         test_loader = torch.utils.data.DataLoader(self.data_loader, batch_size = self.config.batch_size
                                                   ,num_workers = self.config.data_loader_workers,
                                                  pin_memory=self.config.pin_memory, shuffle = False)
@@ -289,29 +292,35 @@ class ERFNetAgent(BaseAgent):
         tqdm_batch = tqdm(self.data_loader.test_loader,
                           total=self.data_loader.test_iterations,
                           desc="Test at -{}-".format(self.current_epoch))
-                          '''
-        for epoch in range()
-        tqdm_batch = tqdm(test_loader, total = test_iterations, desc = "Test at -{}-".format(self.current_epoch))
+
+        
+        #tqdm_batch = tqdm(test_loader, total = test_iterations, desc = "Test at -{}-".format(self.current_epoch))
         # set the model in training mode
         self.model.eval()
-        
+        '''
         for x, y in tqdm_batch:
             if self.cuda:
                 x, y = x.pin_memory().cuda(non_blocking=self.config.async_loading), y.cuda(non_blocking=self.config.async_loading)
             x, y = Variable(x), Variable(y)
             # model
             pred = self.model(x)
-            segmented_img = self.image_transform(self.color_transform(pred[0].cpu().max(0)
-                                                                    [1].data.unsqueeze(0)))
-            print(segmented_img.shape)
-            imageio.imsave(self.config.out_dir + x[0] + ".png", segmented_img)
+            
         '''
+        i = 0
         for x_name, x in tqdm_batch:
             if self.cuda:
                 x = x.pin_memory().cuda(non_blocking=self.config.async_loading)           
             x = Variable(x)
+            x = x.unsqueeze(0)
             pred = self.model(x)
-        '''
+            segmented_img = self.image_transform(self.color_transform(pred[0].cpu().max(0)
+                                                                    [1].data.unsqueeze(0)))
+            
+            j = str(i)
+            imageio.imsave(j+".png", segmented_img)
+            i += 1
+            #imageio.imsave(i+".png" , segmented_img)
+        
             
         
         tqdm_batch.close()
